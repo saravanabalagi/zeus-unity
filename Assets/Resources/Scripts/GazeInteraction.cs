@@ -26,6 +26,44 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
     private static List<string> hashTags = new List<string>();
     private static List<int> hashHits = new List<int>();
 
+    private HashTagBounds countryAvoidHashTagBounds = new HashTagBounds(0, 1, -0.2f, 0.2f);
+    private List<HashTagBounds> hashTagBoundsList = new List<HashTagBounds>();
+
+    private class HashTagBounds {
+        public float startX;
+        public float startY;
+        public float endX;
+        public float endY;
+        public HashTagBounds(float startX,
+                                float endX,
+                                float startY,
+                                float endY) {
+            this.startX = startX;
+            this.startY = startY;
+            this.endX = endX;
+            this.endY = endY;
+        }
+
+        public static bool isWithinBounds(HashTagBounds current, HashTagBounds old) {
+            if (current.startX >= old.startX && current.startX <= old.endX) return false;
+            else if (current.startY >= old.startY && current.startY <= old.endY) return false;
+            else if (current.endX >= old.startX && current.endX <= old.endX) return false;
+            else if (current.endY >= old.startY && current.endY <= old.endY) return false;
+            return true;
+        }
+
+        public static bool isPerfectToBePlaced(HashTagBounds hashTagBounds, List<HashTagBounds> hashTagBoundsList) {
+            foreach (HashTagBounds hashTagBoundsIter in hashTagBoundsList)
+                if (!HashTagBounds.isWithinBounds(hashTagBounds, hashTagBoundsIter))
+                    return false;
+            return true;
+        }
+
+        override public string ToString() {
+            return this.startX + " " + this.endX + " " + this.startY + " " + this.endY;
+        }
+    }
+
     void Start() {
         SetGazedAt(false);
         mainCam = Camera.main;
@@ -67,7 +105,9 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
     void ShowHashTags() {
         if(hashTagCanvases==null) hashTagCanvases = new GameObject[maxHashTags];
-        for(int i=0; i< hashTags.Count; i++) {
+        hashTagBoundsList.Clear();
+        hashTagBoundsList.Add(countryAvoidHashTagBounds);
+        for (int i=0; i< hashTags.Count; i++) {
             GameObject hashTagCanvas;
             GameObject hashTagText;
             if (hashTagCanvases[i]==null) {
@@ -90,15 +130,11 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
                 hashTagText = new GameObject();
                 hashTagText.name = "Text";
                 hashTagText.transform.parent = hashTagCanvas.transform;
-                hashTagPanel.GetComponent<RectTransform>();
                 hashTagText.transform.localPosition = new Vector3(0, 0, 0);
                 hashTagText.transform.localScale = new Vector3(1, 1, 1);
                 Text t = hashTagText.AddComponent<Text>();
                 t.alignment = TextAnchor.MiddleCenter;
                 t.font = (Font)Resources.GetBuiltinResource(typeof(Font), "Arial.ttf");
-
-                RectTransform rt = hashTagPanel.GetComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(CalculateLengthOfMessage(t, t.text) + 40, 45);
 
                 hashTagCanvases[i] = hashTagCanvas;
             }
@@ -108,13 +144,55 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
             Text hashTagTextComponent = hashTagCanvas.GetComponentInChildren<Text>().GetComponent<Text>();
             hashTagTextComponent.text = hashTags[i];
+            //switch (i) {
+            //    case 19:
+            //    case 18:
+            //    case 17:
+            //    case 16:
+            //        hashTagTextComponent.fontSize = 14; break;
+            //    case 15:
+            //    case 14:
+            //    case 13:
+            //    case 12:
+            //    case 11:
+            //        hashTagTextComponent.fontSize = 16; break;
+            //    case 10:
+            //    case 9:
+            //    case 8:
+            //    case 7:
+            //        hashTagTextComponent.fontSize = 18; break;
+            //    case 6:
+            //    case 5:
+            //    case 4:
+            //        hashTagTextComponent.fontSize = 20; break;
+            //    case 3:
+            //    case 2:
+            //        hashTagTextComponent.fontSize = 22; break;
+            //    case 1:
+            //        hashTagTextComponent.fontSize = 24; break;
+            //    default: hashTagTextComponent.fontSize = 14; break;
+            //}
 
-            Random.InitState(System.DateTime.Now.Millisecond - Random.Range(10001,99999));
-            float positionX = Random.Range(-2f, 2f);
-            Random.InitState(System.DateTime.Now.Millisecond - Random.Range(10001,99999));
-            float positionY = Random.Range(-2f, 2f);
+            RectTransform rt = hashTagCanvas.GetComponentInChildren<CanvasRenderer>().GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(CalculateLengthOfMessage(hashTagTextComponent, hashTagTextComponent.text) + 40, 45);
 
-            hashTagCanvas.transform.localPosition = new Vector3(positionX, positionY, 6);
+            HashTagBounds hashTagBounds = null;
+            do {
+                Random.InitState(System.DateTime.Now.Millisecond - Random.Range(10001, 99999));
+                float positionX = Random.Range(-3f, 3f);
+                Random.InitState(System.DateTime.Now.Millisecond - Random.Range(10001, 99999));
+                float positionY = Random.Range(-3f, 3f);
+
+                float finalPositionX = positionX + 0.1f;
+                float finalPositionY = positionY + 0.2f;
+                hashTagBounds = new HashTagBounds(positionX, finalPositionX, positionY, finalPositionY);
+            } while (!HashTagBounds.isPerfectToBePlaced(hashTagBounds, hashTagBoundsList));
+
+            print(hashTagBounds.ToString());
+            print(HashTagBounds.isPerfectToBePlaced(hashTagBounds, hashTagBoundsList));
+
+            hashTagBoundsList.Add(hashTagBounds);
+            hashTagCanvas.transform.localPosition = new Vector3(hashTagBounds.startX, hashTagBounds.startY, 6);
             hashTagCanvas.transform.localEulerAngles = new Vector3(0, 0, 0);
 
             hashTagCanvas.SetActive(true);
