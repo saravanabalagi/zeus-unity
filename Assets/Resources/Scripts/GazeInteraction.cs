@@ -10,26 +10,30 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
     public Material gazedAtMaterial;
     public Material selectedMaterial;
 
+    public static GameObject selectedCountry;
+
     public VRViewer vrViewer;
     public Camera mainCam;
 
-    public static GameObject canvasGameObject;
-    public static GameObject textGameObject;
+    public static GameObject tooltipCanvas;
+    public static GameObject tooltipText;
     public static GameObject panelGameObject;
 
-    public static GameObject selectedCountry;
-
+    //private static bool fetched = false;
+    private const int maxHashTags = 20;
+    private static GameObject[] hashTagCanvases;
+    private static List<string> hashTags = new List<string>();
 
     void Start() {
         SetGazedAt(false);
         mainCam = Camera.main;
-        if (GameObject.Find("VR Viewer"))  vrViewer = GameObject.Find("VR Viewer").GetComponent<VRViewer>();
+        if (GameObject.Find("VR Viewer")) vrViewer = GameObject.Find("VR Viewer").GetComponent<VRViewer>();
     }
 
     public void SetGazedAt(bool gazedAt) {
         if (inactiveMaterial != null && gazedAtMaterial != null) {
-            GetComponent<Renderer>().material = gazedAt 
-                ? gazedAtMaterial 
+            GetComponent<Renderer>().material = gazedAt
+                ? gazedAtMaterial
                 : (selectedCountry == gameObject) ? selectedMaterial : inactiveMaterial;
             return;
         }
@@ -38,53 +42,122 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
     public void OnPointerEnter(PointerEventData eventData) {
         SetGazedAt(true);
+        StartCoroutine(getHashTagsForCountry(gameObject.name));
+        ShowToolTip();
+    }
 
-        if (canvasGameObject == null) {
-            canvasGameObject = new GameObject();
-            canvasGameObject.name = "Tooltip";
-            canvasGameObject.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
-            Canvas canvas = canvasGameObject.AddComponent<Canvas>();
+    private IEnumerator getHashTagsForCountry(string country) {
+        WWW hashTagRequest = new WWW(Ping.rootUrl + "/trends/" + country + "?count=20");
+        yield return hashTagRequest;
+        JSONObject countryJson = new JSONObject(hashTagRequest.text);
+        if (countryJson.type == JSONObject.Type.ARRAY) {
+            hashTags.Clear();
+            foreach (JSONObject trendJson in countryJson.list) {
+                if(hashTags.Count<maxHashTags-1) hashTags.Add(trendJson.GetField("name").str);
+            }
+            ShowHashTags();
+        }
+    }
+
+    void ShowHashTags() {
+        if(hashTagCanvases==null) hashTagCanvases = new GameObject[maxHashTags];
+        for(int i=0; i< hashTags.Count; i++) {
+            GameObject hashTagCanvas;
+            if (hashTagCanvases[i]==null) {
+                hashTagCanvas = new GameObject();
+                hashTagCanvas.name = "HashTag Tooltip";
+                hashTagCanvas.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+                hashTagCanvas.AddComponent<Canvas>();
+
+                GameObject panelGameObject = new GameObject();
+                panelGameObject.name = "Panel";
+                panelGameObject.transform.SetParent(hashTagCanvas.GetComponent<Transform>(), true);
+
+                panelGameObject.transform.localPosition = new Vector3(0, 0, 0);
+                panelGameObject.transform.localScale = new Vector3(1, 1, 1);
+                panelGameObject.AddComponent<CanvasRenderer>();
+                Image panelBg = panelGameObject.AddComponent<Image>();
+                panelBg.sprite = Resources.Load<Sprite>("Sprites/square_rounded_less");
+                panelBg.color = new Color32(0, 0, 0, 93);
+
+                GameObject tooltipText = new GameObject();
+                tooltipText.name = "Text";
+                tooltipText.transform.parent = hashTagCanvas.transform;
+                panelGameObject.GetComponent<RectTransform>();
+                tooltipText.transform.localPosition = new Vector3(0, 0, 0);
+                tooltipText.transform.localScale = new Vector3(1, 1, 1);
+                Text t = tooltipText.AddComponent<Text>();
+                t.alignment = TextAnchor.MiddleCenter;
+                t.font = (Font)Resources.GetBuiltinResource(typeof(Font), "Arial.ttf");
+
+                t.text = hashTags[i];
+                RectTransform rt = panelGameObject.GetComponent<RectTransform>();
+                rt.sizeDelta = new Vector2(CalculateLengthOfMessage(t, t.text) + 40, 45);
+
+                hashTagCanvases[i] = hashTagCanvas;
+            }
+
+            hashTagCanvas = hashTagCanvases[i];
+            hashTagCanvas.transform.SetParent(mainCam.GetComponent<Transform>(), true);
+
+            Random.InitState(System.DateTime.Now.Millisecond - Random.Range(10001,99999));
+            float positionX = Random.Range(-2f, 2f);
+            Random.InitState(System.DateTime.Now.Millisecond - Random.Range(10001,99999));
+            float positionY = Random.Range(-2f, 2f);
+
+            hashTagCanvas.transform.localPosition = new Vector3(positionX, positionY, 6);
+            hashTagCanvas.transform.localEulerAngles = new Vector3(0, 0, 0);
+
+            hashTagCanvas.SetActive(true);
+        }
+    }
+
+    void ShowToolTip() {
+        if (tooltipCanvas == null) {
+            tooltipCanvas = new GameObject();
+            tooltipCanvas.name = "Tooltip";
+            tooltipCanvas.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+            tooltipCanvas.AddComponent<Canvas>();
 
             panelGameObject = new GameObject();
             panelGameObject.name = "Panel";
-            panelGameObject.transform.SetParent(canvasGameObject.GetComponent<Transform>(), true);
+            panelGameObject.transform.SetParent(tooltipCanvas.GetComponent<Transform>(), true);
             panelGameObject.AddComponent<RectTransform>();
-            
-            panelGameObject.transform.localPosition = new Vector3(0,0,0);
-            panelGameObject.transform.localScale = new Vector3(1,1,1);
+
+            panelGameObject.transform.localPosition = new Vector3(0, 0, 0);
+            panelGameObject.transform.localScale = new Vector3(1, 1, 1);
             panelGameObject.AddComponent<CanvasRenderer>();
             Image panelBg = panelGameObject.AddComponent<Image>();
-            panelBg.sprite = Resources.Load<Sprite>("Sprites/Black-Rounded-Minimal");
+            panelBg.sprite = Resources.Load<Sprite>("Sprites/square_rounded_less");
+            panelBg.color = new Color32(0, 37, 0, 255);
 
-            textGameObject = new GameObject();
-            textGameObject.name = "Text";
-            textGameObject.transform.parent = canvasGameObject.transform;
-            textGameObject.transform.localPosition = new Vector3(0, 0, 0);
-            textGameObject.transform.localScale = new Vector3(1, 1, 1);
-
-            Text t = textGameObject.AddComponent<Text>();
+            tooltipText = new GameObject();
+            tooltipText.name = "Text";
+            tooltipText.transform.parent = tooltipCanvas.transform;
+            tooltipText.transform.localPosition = new Vector3(0, 0, 0);
+            tooltipText.transform.localScale = new Vector3(1, 1, 1);
+    
+            Text t = tooltipText.AddComponent<Text>();
             t.alignment = TextAnchor.MiddleCenter;
             t.font = (Font)Resources.GetBuiltinResource(typeof(Font), "Arial.ttf");
-            textGameObject.AddComponent<WorldNewsTransform>();
+            tooltipText.AddComponent<WorldNewsTransform>();
         }
 
-        Text textComponent = textGameObject.GetComponent<Text>();
-        textComponent.text = gameObject.name;
+        Text textComponent = tooltipText.GetComponent<Text>();
+        textComponent.text = gameObject.name.Contains("Curve") ? "Unknown" : gameObject.name;
 
         RectTransform rt = panelGameObject.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(CalculateLengthOfMessage(textComponent, textComponent.text)+40, 45);
+        rt.sizeDelta = new Vector2(CalculateLengthOfMessage(textComponent, textComponent.text) + 40, 45);
 
-        canvasGameObject.SetActive(true);
-        textGameObject.SetActive(true);
+        tooltipCanvas.SetActive(true);
 
- 
-        canvasGameObject.transform.SetParent(mainCam.GetComponent<Transform>(), true);
-        canvasGameObject.transform.localPosition = new Vector3(1, 0, 6);
+        tooltipCanvas.transform.SetParent(mainCam.GetComponent<Transform>(), true);
+        tooltipCanvas.transform.localPosition = new Vector3(1, 0, 6);
+        tooltipCanvas.transform.localEulerAngles = new Vector3(0, 0, 0);
         //canvasGameObject.transform.position = new Vector3(0, 1, 6);
         //canvasGameObject.transform.RotateAround(new Vector3(0, 1, 0), Vector3.right, mainCam.transform.eulerAngles.x);
         //canvasGameObject.transform.RotateAround(new Vector3(0, 1, 0), Vector3.up, mainCam.transform.eulerAngles.y);
         //canvasGameObject.transform.LookAt(2 * canvasGameObject.transform.position - new Vector3(0, 1, 0));
-
     }
 
     int CalculateLengthOfMessage(Text textComponent, string message) {
@@ -101,8 +174,11 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
     public void OnPointerExit(PointerEventData eventData) {
         SetGazedAt(false);
-        canvasGameObject.SetActive(false);
-        textGameObject.SetActive(false);
+        if(tooltipCanvas!=null) tooltipCanvas.SetActive(false);
+        if(hashTagCanvases!=null)
+            for (int i= 0; i<hashTagCanvases.Length; i++) 
+                if (hashTagCanvases[i] != null) hashTagCanvases[i].SetActive(false);
+        if (hashTags != null) hashTags.Clear();
     }
 
     public void OnPointerClick(PointerEventData eventData) {
