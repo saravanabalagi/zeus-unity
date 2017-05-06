@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class VRViewer : MonoBehaviour {
 
-    public bool shouldBeShown = false;
+    public static bool shouldBeShown = false;
 
 	// Use this for initialization
 	void Start () {

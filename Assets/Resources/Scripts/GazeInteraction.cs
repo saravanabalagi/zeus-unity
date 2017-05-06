@@ -21,7 +21,7 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
     public static GameObject toolTipPanel;
 
     //private static bool fetched = false;
-    private const int maxHashTags = 20;
+    public const int maxHashTags = 20;
     private static GameObject[] hashTagCanvases;
     private static List<string> hashTags = new List<string>();
     private static List<int> hashHits = new List<int>();
@@ -144,34 +144,6 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
             Text hashTagTextComponent = hashTagCanvas.GetComponentInChildren<Text>().GetComponent<Text>();
             hashTagTextComponent.text = hashTags[i];
-            //switch (i) {
-            //    case 19:
-            //    case 18:
-            //    case 17:
-            //    case 16:
-            //        hashTagTextComponent.fontSize = 14; break;
-            //    case 15:
-            //    case 14:
-            //    case 13:
-            //    case 12:
-            //    case 11:
-            //        hashTagTextComponent.fontSize = 16; break;
-            //    case 10:
-            //    case 9:
-            //    case 8:
-            //    case 7:
-            //        hashTagTextComponent.fontSize = 18; break;
-            //    case 6:
-            //    case 5:
-            //    case 4:
-            //        hashTagTextComponent.fontSize = 20; break;
-            //    case 3:
-            //    case 2:
-            //        hashTagTextComponent.fontSize = 22; break;
-            //    case 1:
-            //        hashTagTextComponent.fontSize = 24; break;
-            //    default: hashTagTextComponent.fontSize = 14; break;
-            //}
 
             RectTransform rt = hashTagCanvas.GetComponentInChildren<CanvasRenderer>().GetComponent<RectTransform>();
             rt.sizeDelta = new Vector2(CalculateLengthOfMessage(hashTagTextComponent, hashTagTextComponent.text) + 40, 45);
@@ -188,15 +160,15 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
                 hashTagBounds = new HashTagBounds(positionX, finalPositionX, positionY, finalPositionY);
             } while (!HashTagBounds.isPerfectToBePlaced(hashTagBounds, hashTagBoundsList));
 
-            print(hashTagBounds.ToString());
-            print(HashTagBounds.isPerfectToBePlaced(hashTagBounds, hashTagBoundsList));
-
             hashTagBoundsList.Add(hashTagBounds);
             hashTagCanvas.transform.localPosition = new Vector3(hashTagBounds.startX, hashTagBounds.startY, 6);
             hashTagCanvas.transform.localEulerAngles = new Vector3(0, 0, 0);
 
             hashTagCanvas.SetActive(true);
+            if (i == 0) HashTag.selectedHashTag = hashTagCanvas;
         }
+        HashTag.hashTagCanvases = hashTagCanvases;
+        HashTag.normalizeSelection();
     }
 
     void ShowToolTip() {
@@ -282,9 +254,6 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
             selectedCountry = this.gameObject;
             selectedCountry.GetComponent<Renderer>().material = selectedMaterial;
         }
-
-
-        
 
     }
 
