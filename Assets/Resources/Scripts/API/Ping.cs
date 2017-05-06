@@ -10,8 +10,10 @@ public class Ping : MonoBehaviour {
 
 	// Use this for initialization
 	IEnumerator Start () {
-        WWW www = new WWW(rootUrl+"/ping");
+        Loading.loading = true;
+        WWW www = new WWW(rootUrl + "/ping");
         yield return www;
+        Loading.loading = false;
         if (www.responseHeaders["STATUS"].Contains("OK")) {
             connected = true;
             gameObject.GetComponent<Text>().text = "Connected";
