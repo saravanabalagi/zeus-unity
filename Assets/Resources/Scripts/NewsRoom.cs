@@ -45,6 +45,27 @@ public class NewsRoom : MonoBehaviour {
         }
     }
 
+    public void startApiRequest(string query) {
+        this.query = query;
+        StartCoroutine(makeNewsApiRequest());
+    }
+
+    IEnumerator makeNewsApiRequest() {
+        WWW newsRequest = new WWW(Ping.rootUrl + "/newsapi/" + query.Replace(" ", "%20") + "?count=5");
+        yield return newsRequest;
+        JSONObject newsJson = new JSONObject(newsRequest.text);
+        print("Response:" + newsJson);
+        if (newsJson.type == JSONObject.Type.ARRAY) {
+            foreach (JSONObject newsArticleJson in newsJson.list) {
+                titleList.Add(newsArticleJson.GetField("title").str);
+                descList.Add(newsArticleJson.GetField("description").str);
+                imageUrlList.Add(newsArticleJson.GetField("urlToImage").str);
+                providerList.Add(newsArticleJson.GetField("provider").str);
+            }
+            createCards(newsJson.list.Count);
+        }
+    }
+
     IEnumerator getTexture(Image image, string url) {
         WWW www = new WWW(url);
         yield return www;
@@ -131,6 +152,7 @@ public class NewsRoom : MonoBehaviour {
 
             cardCanvas = cardList[i];
             if (i >= count) cardCanvas.SetActive(false);
+            else cardCanvas.SetActive(true);
 
             Image newsImageComponent1 = cardCanvas.GetComponentInChildren<Image>();
             StartCoroutine(getTexture(newsImageComponent1, imageUrlList[i]));

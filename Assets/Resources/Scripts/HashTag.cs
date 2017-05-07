@@ -60,7 +60,29 @@ public class HashTag : MonoBehaviour {
             foreach (GameObject card in NewsRoom.cardList)
                 card.SetActive(false);
         }
-        
+
+        if (Input.GetKeyUp(KeyCode.Joystick1Button3)) {
+            GameObject speechText = GameObject.Find("Speech Text");
+            SendText sendText = speechText.GetComponent<SendText>();
+            sendText.getAndSendText();
+
+            VRViewer.shouldBeShown = true;
+            worldMap.SetActive(false);
+            if (tooltipCanvas != null)
+                tooltipCanvas.SetActive(false);
+            if (hashTagCanvases != null)
+                for (int i = 0; i < hashTagCanvases.Length; i++)
+                    if (hashTagCanvases[i] != null) hashTagCanvases[i].SetActive(false);
+        }
+
+        if (Input.GetKeyUp(KeyCode.Joystick1Button0)) {
+            GameObject go = GameObject.Find("Speech Text");
+            ApiAiModule apiAimodule = go.GetComponent<ApiAiModule>();
+            apiAimodule.answerTextField = go.GetComponent<Text>();
+            apiAimodule.StartNativeRecognition();
+        }
+
+
         //foreach (KeyCode vKey in System.Enum.GetValues(typeof(KeyCode))) {
         //    if (Input.GetKey(vKey)) {
         //        text.GetComponent<Text>().text = vKey.ToString();
