@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 public class Ping : MonoBehaviour {
 
-    public static string rootUrl = "https://zeus-news.herokuapp.com";
+    public static string rootUrl = "http://zeus-news.herokuapp.com";
     public static bool connected = false;
 
 	// Use this for initialization

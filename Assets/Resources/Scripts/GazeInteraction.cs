@@ -89,15 +89,15 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
     }
 
     private IEnumerator getHashTagsForCountry(string country) {
-        WWW hashTagRequest = new WWW(Ping.rootUrl + "/trends/" + country + "?count=20");
+        WWW hashTagRequest = new WWW(Ping.rootUrl + "/trends/" + country.Replace(" ", "%20") + "?count=20");
         yield return hashTagRequest;
         Loading.loading = false;
         JSONObject countryJson = new JSONObject(hashTagRequest.text);
         if (countryJson.type == JSONObject.Type.ARRAY && focusedCountry == gameObject) {
             hashTags.Clear(); hashHits.Clear();
             foreach (JSONObject trendJson in countryJson.list) {
-                if(hashTags.Count<maxHashTags-1) hashTags.Add(trendJson.GetField("name").str);
-                if(hashHits.Count<maxHashTags-1) hashHits.Add((int)trendJson.GetField("tweet_volume").n);
+                if (hashTags.Count < maxHashTags - 1) hashTags.Add(trendJson.GetField("name").str);
+                if (hashHits.Count < maxHashTags - 1) hashHits.Add((int)trendJson.GetField("tweet_volume").n);
             }
             ShowHashTags();
         }
@@ -168,6 +168,7 @@ public class GazeInteraction : MonoBehaviour, IPointerEnterHandler, IPointerExit
             if (i == 0) HashTag.selectedHashTag = hashTagCanvas;
         }
         HashTag.hashTagCanvases = hashTagCanvases;
+        HashTag.tooltipCanvas = tooltipCanvas;
         HashTag.normalizeSelection();
     }
 
